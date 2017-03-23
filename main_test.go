@@ -1,7 +1,6 @@
-package handlers
+package test1
 
 import (
-	utils "github.com/cancerballs/test1/utils"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,7 +13,7 @@ func TestCmdHandler(t *testing.T) {
 	// it has to be tested here, otherwise the test hangs indefinitely
 	// ***
 	// need to create the channel CmdHandler uses
-	utils.Channel_cmd = make(chan utils.Cmd, 4)
+	Channel_cmd = make(chan Cmd, 4)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/cmd", HandleRequest)
@@ -24,8 +23,8 @@ func TestCmdHandler(t *testing.T) {
 	request, _ := http.NewRequest("POST", "/cmd", json)
 	mux.ServeHTTP(writer, request)
 
-	expected := utils.Cmd{"King of Rock", 666}
-	found := <-utils.Channel_cmd
+	expected := Cmd{"King of Rock", 666}
+	found := <-Channel_cmd
 	if found != expected {
 		t.Errorf("Expected %s, found %s", expected, found)
 	}
@@ -36,7 +35,7 @@ func TestCmdHandler(t *testing.T) {
 	}
 
 	// Check the response body
-	expected_result := `{"status":"success"}`
+	expected_result := `{"status": "success"}`
 	if writer.Body.String() != expected_result {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			writer.Body.String(), expected_result)
@@ -54,7 +53,7 @@ func TestCmdHandler(t *testing.T) {
 	}
 
 	// expecting failure
-	expected_result2 := `{"status":"failure"}`
+	expected_result2 := `{"status": "failure"}`
 	if writer2.Body.String() != expected_result2 {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			writer2.Body.String(), expected_result2)
