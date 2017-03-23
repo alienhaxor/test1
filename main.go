@@ -54,6 +54,7 @@ func SetupServers(httpPort string, tcpPort string) {
 			}
 		}
 	}()
+}
 
 func TcpServer(tcpPort string) {
 	listener, err := net.Listen("tcp", tcpPort)
