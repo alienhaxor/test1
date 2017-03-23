@@ -36,7 +36,6 @@ func Listen(listener Listener) {
 
 func SetupServers(httpPort string, tcpPort string) {
 	http.HandleFunc("/cmd", HandleRequest)
-	go http.ListenAndServe(httpPort, nil)
 	go TcpServer(tcpPort)
 
 	go func() {
@@ -54,6 +53,8 @@ func SetupServers(httpPort string, tcpPort string) {
 			}
 		}
 	}()
+
+	go http.ListenAndServe(httpPort, nil)
 }
 
 func TcpServer(tcpPort string) {
