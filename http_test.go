@@ -13,7 +13,7 @@ func TestCmdHandler(t *testing.T) {
 	// it has to be tested here, otherwise the test hangs indefinitely
 	// ***
 	// need to create the channel CmdHandler uses
-	Channel_cmd = make(chan Cmd, 4)
+	channelCmd = make(chan Cmd, 4)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/cmd", HandleRequest)
@@ -23,8 +23,9 @@ func TestCmdHandler(t *testing.T) {
 	request, _ := http.NewRequest("POST", "/cmd", json)
 	mux.ServeHTTP(writer, request)
 
+	// test channel(internal purposes)
 	expected := Cmd{"King of Rock", 666}
-	found := <-Channel_cmd
+	found := <-channelCmd
 	if found != expected {
 		t.Errorf("Expected %s, found %s", expected, found)
 	}
