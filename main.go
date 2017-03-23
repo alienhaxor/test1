@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -15,19 +16,65 @@ type Cmd struct {
 	Type int    `json:"type"`
 }
 
-// Refactor: research if feasible to save the channel to a structuct
-var Channel_cmd chan Cmd
-
 func init() {
 	// Providing the buffer length as the second argument
 	// makes this a buffered channel
 	Channel_cmd = make(chan Cmd, 4)
+	Exit = make(chan bool)
+}
+
+// Refactor: research if feasible to save the channel to a structuct
+var Channel_cmd chan Cmd
+var Exit chan bool
+var listeners = []Listener{}
+
+type Listener func(cmd Cmd)
+
+func Listen(listener Listener) {
+	listeners = append(listeners, listener)
 }
 
 func SetupServers(httpPort string, tcpPort string) {
 	http.HandleFunc("/cmd", HandleRequest)
 	go http.ListenAndServe(httpPort, nil)
 	go TcpServer(tcpPort)
+
+	go func() {
+		for {
+			log.Printf("for loop 0")
+			select {
+			case in := <-Channel_cmd:
+				log.Printf("for loop 1")
+				for _, l := range listeners {
+					log.Printf("for loop 2")
+					go l(in)
+				}
+			case <-Exit:
+				return
+			}
+		}
+	}()
+
+func TcpServer(tcpPort string) {
+	listener, err := net.Listen("tcp", tcpPort)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	defer func() {
+		listener.Close()
+	}()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		go handleConnection(conn)
+	}
 }
 
 func handleConnection(conn net.Conn) {
@@ -61,6 +108,8 @@ func handleConnection(conn net.Conn) {
 		// TODO: in a world where external libraries can be used one
 		// could refactor this to use some sort of JSON schema
 		// maybe https://github.com/xeipuuv/gojsonschema
+		// TODO: refactor validate and send to channel to 1 function that is shared
+		// by http CmdHandler and tcp handleConnection
 		// ***
 		// validate the struct created from the JSON
 		// "" and 0 are zero values for variables declared without an explicit initial value
@@ -75,28 +124,6 @@ func handleConnection(conn net.Conn) {
 		Channel_cmd <- cmd
 		data := []byte(`{"status": "success"}`)
 		conn.Write([]byte(data))
-	}
-}
-
-func TcpServer(tcpPort string) {
-	listener, err := net.Listen("tcp", tcpPort)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	defer func() {
-		listener.Close()
-	}()
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-
-		go handleConnection(conn)
 	}
 }
 
@@ -129,6 +156,8 @@ func CmdHandler(w http.ResponseWriter, r *http.Request) (err error) {
 	// TODO: in a world where external libraries can be used one
 	// could refactor this to use some sort of JSON schema
 	// maybe https://github.com/xeipuuv/gojsonschema
+	// TODO: refactor validate and send to channel to 1 function that is shared
+	// by http CmdHandler and tcp handleConnection
 	// ***
 	// validate the struct created from the JSON
 	// "" and 0 are zero values for variables declared without an explicit initial value
