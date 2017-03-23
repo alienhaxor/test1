@@ -1,11 +1,9 @@
 package test1
 
 import (
-	// handlers "github.com/cancerballs/test1/handlers"
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"time"
@@ -19,13 +17,13 @@ type Cmd struct {
 func init() {
 	// Providing the buffer length as the second argument
 	// makes this a buffered channel
-	Channel_cmd = make(chan Cmd, 4)
-	Exit = make(chan bool)
+	channelCmd = make(chan Cmd, 4)
+	exit = make(chan bool)
 }
 
 // Refactor: research if feasible to save the channel to a structuct
-var Channel_cmd chan Cmd
-var Exit chan bool
+var channelCmd chan Cmd
+var exit chan bool
 var listeners = []Listener{}
 
 type Listener func(cmd Cmd)
@@ -40,21 +38,18 @@ func SetupServers(httpPort string, tcpPort string) {
 
 	go func() {
 		for {
-			log.Printf("for loop 0")
 			select {
-			case in := <-Channel_cmd:
-				log.Printf("for loop 1")
+			case in := <-channelCmd:
 				for _, l := range listeners {
-					log.Printf("for loop 2")
 					go l(in)
 				}
-			case <-Exit:
+			case <-exit:
 				return
 			}
 		}
 	}()
 
-	go http.ListenAndServe(httpPort, nil)
+	http.ListenAndServe(httpPort, nil)
 }
 
 func TcpServer(tcpPort string) {
@@ -123,7 +118,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		Channel_cmd <- cmd
+		channelCmd <- cmd
 		data := []byte(`{"status": "success"}`)
 		conn.Write([]byte(data))
 	}
@@ -173,7 +168,7 @@ func CmdHandler(w http.ResponseWriter, r *http.Request) (err error) {
 	}
 
 	// data is valid and is sent to the channel
-	Channel_cmd <- cmd
+	channelCmd <- cmd
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": "success"}`))
