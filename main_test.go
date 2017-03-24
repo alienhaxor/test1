@@ -32,3 +32,30 @@ func TestSetupServers(t *testing.T) {
 	// it's a big chuck of the program. Probably integration test
 	// for verifying that it actually starts the http and tcp server
 }
+
+func TestValidateData(t *testing.T) {
+	validData := Cmd{"King of Rock", 666}
+	invalidData := Cmd{"", 666}
+	invalidData2 := Cmd{"", 0}
+	invalidData4 := Cmd{}
+
+	_, err := validateData(validData)
+	if err != nil {
+		t.Errorf("This data should be valid")
+	}
+
+	_, err = validateData(invalidData)
+	if err == nil {
+		t.Errorf("This data is invalid")
+	}
+
+	_, err = validateData(invalidData2)
+	if err == nil {
+		t.Errorf("This data is invalid")
+	}
+
+	_, err = validateData(invalidData4)
+	if err == nil {
+		t.Errorf("This data is invalid")
+	}
+}

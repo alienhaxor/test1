@@ -1,6 +1,7 @@
 package test1
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -45,4 +46,19 @@ func SetupServers(httpPort string, tcpPort string) {
 	}()
 
 	http.ListenAndServe(httpPort, nil)
+}
+
+func validateData(cmd Cmd) (int, error) {
+	// TODO: in a world where external libraries can be used one
+	// could refactor this to use some sort of JSON schema
+	// maybe https://github.com/xeipuuv/gojsonschema
+	// ***
+	// validate the struct created from the JSON
+	// "" and 0 are zero values for variables declared without an explicit initial value
+	// meaning a value was not supplied which makes this an invalid request.
+	// Requests with Type == 0 are invalid
+	if cmd.Body == "" || cmd.Type == 0 {
+		return 1, errors.New("Validation error!")
+	}
+	return 0, nil
 }
